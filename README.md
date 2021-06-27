@@ -1,8 +1,9 @@
+Currently under development
 <pre style="white-space: pre-wrap;">
   St0nk
   ========
 
-  A free stock analyzer that has more or less the same functionality as other tools.<br>
+  A free stock analyzer that has more or less the same functionality as other tools.
   It has both a CLI and GUI interface and supports the most commonly used indicators and
   candlestick patterns.
 
@@ -35,4 +36,6 @@
 
   Data is fetched from Finnhub and Marketstack. You can create an account and subscribe to
   their free plans which is fair enough for personal use. Place your API keys in headers/api.h
+
+  Most financial softwares are too corrupt and expensive so let's make a better, free version.
 </pre>
