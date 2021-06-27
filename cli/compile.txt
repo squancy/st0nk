@@ -1,0 +1,1 @@
+gcc main.c lib.c helpers.c apireq.c pyc.c technical_analysis.c `python3-config --embed --ldflags --includes` -lpython -lcjson -lcurl
