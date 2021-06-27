@@ -1,5 +1,5 @@
-<pre>
-  St0ck<br>
+<pre style="white-space: pre-wrap">
+  St0nk<br>
   ========<br><br>
   A free stock analyzer that has more or less the same functionality as other tools.<br>
   It has both a CLI and GUI interface and supports the most commonly used indicators and candlestick patterns.<br>
