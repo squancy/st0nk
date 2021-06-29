@@ -6,4 +6,4 @@
 *.pyc
 __pycache__
 *.sw*
-graphs/*
+cli/graphs/*
