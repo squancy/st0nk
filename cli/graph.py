@@ -69,7 +69,7 @@ def draw_graph(dataset, chart_type, indicators, time_intervals):
   while j < len(indicators): 
     indname = list(indicators[j].keys())[0]
     ind_data = get_stock_data(indicators, j)
-    dfr = pd.DataFrame(ind_data, columns=['Price'])
+    dfr = pd.DataFrame(ind_data, columns=[indname])
     if indname == "MACD":
       pnum_before = pnum
       pnum = 0
@@ -80,15 +80,14 @@ def draw_graph(dataset, chart_type, indicators, time_intervals):
 
       for x in range(j, j + 2):
         ind_data = get_stock_data(indicators, x)
-        dfm = pd.DataFrame(ind_data, columns=['Price'])
+        dfm = pd.DataFrame(ind_data, columns=[indname])
         hex_color = '#%02x%02x%02x' % colors[c_ind]
         apds.append(mpf.make_addplot(dfm, panel=pnum, color=hex_color))
         rgbs.append(colors[c_ind])
+        positions.append((x_pos, y_pos))
         j += 1
         c_ind += 1
-        positions.append((x_pos, y_pos))
         y_pos += 40
-        c_ind += 1
 
       pnum = pnum_before
 
@@ -97,7 +96,7 @@ def draw_graph(dataset, chart_type, indicators, time_intervals):
         p1 = indicators[js]['MACD'][i]
         p2 = indicators[js + 1]['MACD'][i]
         hist.append([p1 - p2]) 
-      dfh = pd.DataFrame(hist, columns=['Price'])
+      dfh = pd.DataFrame(hist, columns=['MACD Hist'])
       apds.append(mpf.make_addplot(dfh, type='bar', width=0.7, panel=pnum, color='red', alpha=1, secondary_y=False))
       pnum += 1
     elif indname == "STOCH":
@@ -105,14 +104,14 @@ def draw_graph(dataset, chart_type, indicators, time_intervals):
       texts.append("● " + indname + ": slow stoch (" + str(time_intervals[j]) + " days)")
       for x in range(j, j + 2):
         ind_data = get_stock_data(indicators, x)
-        dfs = pd.DataFrame(ind_data, columns=['Price'])
+        dfs = pd.DataFrame(ind_data, columns=[indname])
         hex_color = '#%02x%02x%02x' % colors[c_ind]
         apds.append(mpf.make_addplot(dfs, panel=pnum, color=hex_color))
-        j += 1
         positions.append((x_pos, y_pos))
         rgbs.append(colors[c_ind])
         y_pos += 40
         c_ind += 1
+        j += 1
 
       # add 2 horizontal lines at levels 20 and 80
       line20 = [20 for x in range(len(indicators[0][list(indicators[0].keys())[0]]))]
@@ -126,33 +125,36 @@ def draw_graph(dataset, chart_type, indicators, time_intervals):
       texts.append("● " + indname + " (" + str(time_intervals[j]) + " days)")
       positions.append((x_pos, y_pos))
       rgbs.append(colors[c_ind])
+      hex_color = '#%02x%02x%02x' % colors[c_ind]
+      apds.append(mpf.make_addplot(dfr, panel=pnum, color=hex_color, secondary_y=False))
       y_pos += 40
       c_ind += 1
-      hex_color = '#%02x%02x%02x' % colors[c_ind]
-      apds.append(mpf.make_addplot(dfr, panel=pnum, color=hex_color))
 
       # add 2 horizontal lines at levels 30 and 70
       line30 = [30 for x in range(len(indicators[0][list(indicators[0].keys())[0]]))]
       line70 = [70 for x in range(len(indicators[0][list(indicators[0].keys())[0]]))]
       df30 = pd.DataFrame(line30, columns=['Price'])
       df70 = pd.DataFrame(line70, columns=['Price'])
-      apds.append(mpf.make_addplot(df30, panel=pnum, color='#FF00FF'))
-      apds.append(mpf.make_addplot(df70, panel=pnum, color='#FF00FF'))
+      apds.append(mpf.make_addplot(df30, panel=pnum, color='#FF00FF', secondary_y=False))
+      apds.append(mpf.make_addplot(df70, panel=pnum, color='#FF00FF', secondary_y=False))
       j += 1
       pnum += 1
     else:
+      pnum_before = pnum
       pnum = 0
       texts.append("● " + indname + " (" + str(time_intervals[j]) + " days)")
       positions.append((x_pos, y_pos))
       rgbs.append(colors[c_ind])
-      y_pos += 40
-      c_ind += 1
       hex_color = '#%02x%02x%02x' % colors[c_ind]
       apds.append(mpf.make_addplot(dfr, panel=pnum, color=hex_color))
+      y_pos += 40
+      c_ind += 1
       j += 1
+      pnum = pnum_before
 
   fname = symbol_name + '_' + str(int(time.time())) + '.png'
   s = mpf.make_mpf_style(base_mpf_style='mike', rc={'font.size': 18})
+  print(apds, len(apds))
 
   mpf.plot(df, addplot=apds, show_nontrading=True, style=s, type=chart_type, volume=True, ylabel_lower='Volume',
     title=title, figscale=2, returnfig=True, block=False, savefig='graphs/' + fname, volume_panel=1)

@@ -35,7 +35,7 @@ int main(void) {
   int lengths[3] = {11, 9, 6}; 
   int time_periods[] = {10, 12, 15};
 
-  printf(MAGENTA "Testing void SMA(int time_period, StockData* sd[], size_t sd_size, double output[], char type)\n" RESET);
+  printf(MAGENTA "Testing int SMA(int time_period, StockData* sd[], size_t sd_size, double output[], char type)\n" RESET);
   perform_test(time_periods, sd, lengths, numbers, results, 20, "sma");
 
   double numbers_ema[20] = {
@@ -70,7 +70,7 @@ int main(void) {
   int lengths_ema[3] = {18, 16, 11}; 
   int time_periods_ema[] = {3, 5, 10};
 
-  printf(MAGENTA "\nTesting void EMA(int time_period, StockData* sd[], size_t sd_size, double output[], char type)\n" RESET);
+  printf(MAGENTA "\nTesting int EMA(int time_period, StockData* sd[], size_t sd_size, double output[], char type)\n" RESET);
   perform_test(time_periods_ema, sd, lengths_ema, numbers_ema, ema_res, 20, "ema");
 
   free_sd(sd, 20);
@@ -100,7 +100,7 @@ int main(void) {
   int lengths_wma[3] = {16, 14, 11}; 
   int time_periods_wma[] = {5, 7, 10};
 
-  printf(MAGENTA "\nTesting void WMA(int time_period, StockData* sd[], size_t sd_size, double output[], char type)\n" RESET);
+  printf(MAGENTA "\nTesting int WMA(int time_period, StockData* sd[], size_t sd_size, double output[], char type)\n" RESET);
   perform_test(time_periods_wma, sd, lengths_wma, numbers_wma, wma_res, 20, "wma");
 
   double numbers_dema[20] = {
@@ -115,13 +115,11 @@ int main(void) {
   };
 
   double dema5[] = {
-    24.273264197530864, 66.08325157750343, 35.45844023776865, 31.22869739368999, 27.62895641924503,
-    49.373631939575596, 26.120861955325232, -4.6426871438221795, 20.23270071698144, 35.87812857545177,
-    58.15852667083283, 87.42331174979854
+    27.222746, 22.456239, 48.693765, 35.465581, 12.260212, 34.361136, 42.732531, 54.145092, 84.271220, 53.037142, 42.771202, 35.925095
   };
 
   double dema10[] = {
-    34.0001414416059, 25.10274665334503
+    48.504613, 44.199133
   };
 
   fill_closing_prices(numbers_dema, 20, sd);
@@ -130,7 +128,7 @@ int main(void) {
   int lengths_dema[3] = {18, 12, 2}; 
   int time_periods_dema[] = {2, 5, 10};
 
-  printf(MAGENTA "\nTesting void DEMA(int time_period, StockData* sd[], size_t sd_size, double output[], char type)\n" RESET);
+  printf(MAGENTA "\nTesting int DEMA(int time_period, StockData* sd[], size_t sd_size, double output[], char type)\n" RESET);
   perform_test(time_periods_dema, sd, lengths_dema, numbers_dema, dema_res, 20, "dema");
 
   double numbers_tema[40] = {
@@ -140,27 +138,18 @@ int main(void) {
   };
 
   double tema5[] = {
-    76.44519810597978, 93.30109271463812, 48.112361158886856,
-    69.79406480373171, 29.48826812587744, 30.990705004967978, 95.5871457839458,
-    58.743579154120184, 46.49820985704389, 55.63894996309667,
-    14.978754680985254, 6.406156776224961, 15.934033226127909,
-    -24.910511566122636, 28.988386425873074, 79.6479092291328,
-    85.55300350047253, 71.4116499327304, 43.08719422901825, 35.526782177498944,
-    57.995201659338115, 78.43645500172008, 122.78872473247047,
-    57.37519884319218, 21.715121747303762, 71.2129338466388, 8.462060576336953,
-    58.06839357857881
+    27.190469, 24.961703, 27.860832, 10.261755, 28.772534, 48.841865, 24.383462, 68.328153, 94.383723,
+    86.206490, 72.949691, 59.868499, 47.268962, 52.958352, 73.443570, 87.923103, 35.698736, 13.101430,
+    62.111019, 21.290869, 59.158951, 30.698526, 57.797598, 63.917220, 36.772762, 11.965556, 29.599939, 66.974399
   };
 
   double tema10[] = {
-    75.46308469355401, 90.49687678948368, 58.79811881759638, 42.8077169499612,
-    33.24076848656781, 10.74352506115585, 10.784949561774745,
-    17.86866112438502, -6.956968080898179, 18.907244421306004,
-    49.91826984547274, 57.295877923391245, 63.21048764981412
+    79.751931, 51.504511, 31.560723, 56.322240, 31.530723, 51.457366, 35.058289, 49.441225, 55.982760,
+    42.209132, 24.492946, 29.664085, 52.046654
   };
 
   double tema12[] = {
-    65.73647253784958, 52.65343543642561, 43.82593115903596, 20.90531688544784,
-    14.824490530966962, 21.413339864110746, 7.176760300884624
+    38.070767, 49.657830, 55.269761, 43.541670, 27.718653, 31.089386, 49.933775
   };
 
   print_h_line(80);
@@ -170,10 +159,10 @@ int main(void) {
   int lengths_tema[3] = {28, 13, 7}; 
   int time_periods_tema[] = {5, 10, 12};
 
-  printf(MAGENTA "\nTesting void TEMA(int time_period, StockData* sd[], size_t sd_size, double output[], char type)\n" RESET);
+  printf(MAGENTA "\nTesting int TEMA(int time_period, StockData* sd[], size_t sd_size, double output[], char type)\n" RESET);
   perform_test(time_periods_tema, sd, lengths_tema, numbers_tema, tema_res, 40, "tema");
 
-  printf(MAGENTA "\nTesting void MACD(int time1, int time2, StockData* sd[], size_t sd_size, double signal_line[], double macd[], char type)\n" RESET);
+  printf(MAGENTA "\nTesting int MACD(int time1, int time2, StockData* sd[], size_t sd_size, double signal_line[], double macd[], char type)\n" RESET);
   double* numbers_macd = numbers_tema;
   fill_closing_prices(numbers_macd, 40, sd);
 
@@ -184,13 +173,13 @@ int main(void) {
   MACD(12, 26, sd, 40, signal_line, macd, 'c');
 
   double macd_res[14] = {
-    52.349615, 55.298533, 52.120864, 48.983022, 52.324280, 48.572111, 51.080843,
-    48.472633, 50.167993, 51.233327, 49.292340, 46.092907, 45.825284, 48.618967
+    55.298533, 52.120864, 48.983022, 52.324280, 48.572111, 51.080843, 48.472633, 50.167993, 51.233327,
+    49.292340, 46.092907, 45.825284, 48.618967, 48.274599
   };
 
   double signal_res[14] = {
-    48.274599, 63.554354, 55.684454, 48.619153, 55.614668, 47.315488, 52.719259,
-    47.050143, 50.790121, 52.907025, 48.618252, 42.076982, 42.138985, 48.508372
+    63.554354, 55.684454, 48.619153, 55.614668, 47.315488, 52.719259, 47.050143, 50.790121, 52.907025,
+    48.618252, 42.076982, 42.138985, 48.508372, 47.810161
   };
 
   for (int i = 0; i < 14; i++) {
@@ -202,6 +191,34 @@ int main(void) {
 
   printf("INPUT: %s\nOUTPUT: %s, %s\n", arr_to_str(numbers_macd, 40), arr_to_str(signal_line, 14), arr_to_str(macd, 14));
   print_status(status);
+
+  printf(MAGENTA "\nTesting int RSI(int time_period, StockData* sd[], size_t sd_size, double output[])\n" RESET);
+
+  double* numbers_rsi = numbers_tema;
+  fill_closing_prices(numbers_rsi, 40, sd);
+
+  double rsi8[] = {
+    41.370481, 43.187122, 62.423651, 39.058009, 41.036988, 44.884935, 46.269769, 45.767092, 59.589041,
+    45.126733, 49.317726, 67.346770, 58.095354, 54.846665, 59.915703, 50.436351, 49.608407, 70.510408,
+    53.477283, 27.244051, 31.003212, 57.309590, 42.027754, 55.076449, 45.328743, 49.015756, 47.055185,
+    51.473574, 49.588616, 43.498198, 61.847018
+  };
+  double rsi12[] = {
+    46.587854, 45.228973, 49.662771, 45.084993, 46.273550, 43.380551, 55.626401, 53.008059, 57.308372,
+    52.884402, 44.981618, 55.474876, 54.683922, 57.351837, 64.796731, 45.698893, 42.333480, 62.068673,
+    38.825277, 48.616341, 44.385769, 51.073254, 51.157500, 48.394734, 45.463114, 46.678838, 49.287226
+  };
+  double rsi14[] = {
+    44.638362, 46.265359, 54.884788, 42.398448, 49.484027, 52.472563, 53.874652, 49.291096, 55.009042,
+    50.748984, 45.909126, 60.551512, 59.595991, 47.075398, 50.412199, 56.287553, 44.250197, 56.994779,
+    43.377637, 47.932211, 49.491911, 46.955432, 46.053799, 49.963286, 52.064966
+  };
+
+  double* rsi_res[] = {rsi8, rsi12, rsi14};
+
+  int time_periods_rsi[] = {8, 12, 14};
+  int lengths_rsi[] = {31, 27, 25};
+  perform_test(time_periods_rsi, sd, lengths_rsi, numbers_rsi, rsi_res, 40, "rsi");
 
   return 0;
 }
@@ -219,6 +236,8 @@ void perform_test(int time_periods[], StockData* sd[], int lengths[], double num
       DEMA(time_periods[i], sd, size, res, 'c');
     } else if (strcmp(type, "tema") == 0) {
       TEMA(time_periods[i], sd, size, res, 'c');
+    } else if (strcmp(type, "rsi") == 0) {
+      RSI(time_periods[i], sd, size, res);
     }
 
     int status = 1;

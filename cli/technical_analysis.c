@@ -185,39 +185,26 @@ int STOCH(int time_period, StockData* sd[], size_t sd_size, double pk[], double 
 }
 
 // RSI (Relative Strenght Index)
+// Implemented with SMA as an averaging function
 int RSI(int time_period, StockData* sd[], size_t sd_size, double output[]) {
-  double sumUArr[sd_size]; 
-  double sumDArr[sd_size]; 
   int k = 0;
-  double avgUt[sd_size];
-  double avgDt[sd_size];
   for (int i = time_period + 1; i < sd_size; i++) {
-    int sumU = 0;
-    int sumD = 0;
-    for (int j = i; j > i - time_period; j--) {
-      int diff = sd[j]->close - sd[j - 1]->close;
+    double sumU = 0;
+    double sumD = 0;
+    for (int j = i - time_period; j < i; j++) {
+      double diff = sd[j]->close - sd[j - 1]->close;
       if (diff > 0) {
         sumU += diff;
       } else {
-        sumD += abs(diff);
+        sumD += fabs(diff);
       }
     }
-    sumUArr[k] = sumU;
-    sumDArr[k] = sumD;
-    k++;
+    
+    double avgU = sumU / time_period;
+    double avgD = sumD / time_period;
+    double RS = avgU / avgD;
+    output[k++] = 100 - 100 / (1 + RS);
   }
 
-  StockData* sd_u[k];
-  StockData* sd_d[k];
-  fill_closing_prices(sumUArr, k, sd_u);
-  fill_closing_prices(sumDArr, k, sd_d);
-  EMA(time_period, sd_u, k, avgUt, 'c'); 
-  EMA(time_period, sd_d, k, avgDt, 'c'); 
-  for (int i = 0; i < k - time_period + 1; i++) {
-    double RS = avgUt[i] / avgDt[i];
-    output[i] = 100 - 100 / (1 + RS);
-  }
-  return k - time_period + 1;
+  return k;
 }
-
-//  int EMA(int time_period, StockData* sd[], size_t sd_size, double output[], char type) {

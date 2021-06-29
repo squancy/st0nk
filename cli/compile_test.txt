@@ -1,0 +1,1 @@
+gcc test/analysisTest.c technical_analysis.c helpers.c lib.c apireq.c -lcjson -lcurl
