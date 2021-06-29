@@ -174,7 +174,7 @@ int is_date_valid(char* date_ro) {
     i++;
   }
 
-	struct tm input = {
+  struct tm input = {
     .tm_mday = day,
     .tm_mon = month - 1,
     .tm_year = year - 1900,
