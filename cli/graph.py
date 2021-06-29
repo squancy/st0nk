@@ -5,6 +5,11 @@ from PIL import ImageDraw
 from PIL import ImageFont
 from PIL import Image
 
+def add_horizontal_line(val, indicators, pnum, apds, color='#FF00FF'):
+  line = [val for x in range(len(indicators[0][list(indicators[0].keys())[0]]))]
+  df = pd.DataFrame(line, columns=['Price'])
+  apds.append(mpf.make_addplot(df, panel=pnum, color=color, secondary_y=False))
+
 def get_stock_data(indicators, j):
   indname = list(indicators[j].keys())[0]
   indicator = indicators[j][indname]
@@ -114,12 +119,8 @@ def draw_graph(dataset, chart_type, indicators, time_intervals):
         j += 1
 
       # add 2 horizontal lines at levels 20 and 80
-      line20 = [20 for x in range(len(indicators[0][list(indicators[0].keys())[0]]))]
-      line80 = [80 for x in range(len(indicators[0][list(indicators[0].keys())[0]]))]
-      df20 = pd.DataFrame(line20, columns=['Price'])
-      df80 = pd.DataFrame(line80, columns=['Price'])
-      apds.append(mpf.make_addplot(df20, panel=pnum, color='#FF00FF'))
-      apds.append(mpf.make_addplot(df80, panel=pnum, color='#FF00FF'))
+      add_horizontal_line(20, indicators, pnum, apds)
+      add_horizontal_line(80, indicators, pnum, apds)
       pnum += 1
     elif indname == "RSI":
       texts.append("● " + indname + " (" + str(time_intervals[j]) + " days)")
@@ -131,12 +132,23 @@ def draw_graph(dataset, chart_type, indicators, time_intervals):
       c_ind += 1
 
       # add 2 horizontal lines at levels 30 and 70
-      line30 = [30 for x in range(len(indicators[0][list(indicators[0].keys())[0]]))]
-      line70 = [70 for x in range(len(indicators[0][list(indicators[0].keys())[0]]))]
-      df30 = pd.DataFrame(line30, columns=['Price'])
-      df70 = pd.DataFrame(line70, columns=['Price'])
-      apds.append(mpf.make_addplot(df30, panel=pnum, color='#FF00FF', secondary_y=False))
-      apds.append(mpf.make_addplot(df70, panel=pnum, color='#FF00FF', secondary_y=False))
+      add_horizontal_line(30, indicators, pnum, apds)
+      add_horizontal_line(70, indicators, pnum, apds)
+      j += 1
+      pnum += 1
+    elif indname == "WillR":
+      texts.append("● " + indname + " (" + str(time_intervals[j]) + " days)")
+      positions.append((x_pos, y_pos))
+      rgbs.append(colors[c_ind])
+      hex_color = '#%02x%02x%02x' % colors[c_ind]
+      apds.append(mpf.make_addplot(dfr, panel=pnum, color=hex_color))
+
+      # add 2 horizontal lines at levels -20 and -80
+      add_horizontal_line(-20, indicators, pnum, apds)
+      add_horizontal_line(-80, indicators, pnum, apds)
+
+      y_pos += 40
+      c_ind += 1
       j += 1
       pnum += 1
     else:

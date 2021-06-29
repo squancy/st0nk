@@ -10,6 +10,7 @@ int TEMA(int time_period, StockData* sd[], size_t sd_size, double output[], char
 int KAMA(int time1, int time2, StockData* sd[], size_t sd_size, double output[]);
 int MACD(int time1, int time2, StockData* sd[], size_t sd_size, double signal_line[], double macd[], char type);
 int STOCH(int time_period, StockData* sd[], size_t sd_size, double pk[], double pd[], char type);
-int RSI(int time_period, StockData* sd[], size_t sd_size, double output[]);
+int RSI(int time_period, StockData* sd[], size_t sd_size, double output[], char type);
+int WillR(int time_period, StockData* sd[], size_t sd_size, double output[], char type);
 
 #endif

@@ -11,9 +11,9 @@ const char* CHART_TYPES[] = {
 };
 const int CHART_TYPES_SIZE = 5;
 const char* SUPPORTED_INDICATORS[] = {
-  "SMA", "EMA", "WMA", "DEMA", "TEMA", "KAMA", "MACD", "STOCH", "RSI"
+  "SMA", "EMA", "WMA", "DEMA", "TEMA", "KAMA", "MACD", "STOCH", "RSI", "WillR"
 };
-const int INDICATOR_SIZE = 9;
+const int INDICATOR_SIZE = 10;
 
 void free_sd(StockData* sd[], int n) {
   for (int i = 0; i < n; i++) {
@@ -241,7 +241,9 @@ int perform_indicator(int time_intervals[], StockData* sd[], size_t sd_size, dou
   } else if (strcmp(ind_name, "STOCH") == 0) {
     return STOCH(time_intervals[0], sd, sd_size, output, out2, type);
   } else if (strcmp(ind_name, "RSI") == 0) {
-    return RSI(time_intervals[0], sd, sd_size, output);
+    return RSI(time_intervals[0], sd, sd_size, output, type);
+  } else if (strcmp(ind_name, "WillR") == 0) {
+    return WillR(time_intervals[0], sd, sd_size, output, type);
   }
   return 0;
 }

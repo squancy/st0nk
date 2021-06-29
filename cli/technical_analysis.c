@@ -186,13 +186,13 @@ int STOCH(int time_period, StockData* sd[], size_t sd_size, double pk[], double 
 
 // RSI (Relative Strenght Index)
 // Implemented with SMA as an averaging function
-int RSI(int time_period, StockData* sd[], size_t sd_size, double output[]) {
+int RSI(int time_period, StockData* sd[], size_t sd_size, double output[], char type) {
   int k = 0;
   for (int i = time_period + 1; i < sd_size; i++) {
     double sumU = 0;
     double sumD = 0;
     for (int j = i - time_period; j < i; j++) {
-      double diff = sd[j]->close - sd[j - 1]->close;
+      double diff = get_price(type, sd, j) - get_price(type, sd, j - 1);
       if (diff > 0) {
         sumU += diff;
       } else {
@@ -205,6 +205,20 @@ int RSI(int time_period, StockData* sd[], size_t sd_size, double output[]) {
     double RS = avgU / avgD;
     output[k++] = 100 - 100 / (1 + RS);
   }
+
+  return k;
+}
+
+// Williams %R
+int WillR(int time_period, StockData* sd[], size_t sd_size, double output[], char type) {
+  int k = 0;
+  for (int i = time_period + 1; i < sd_size; i++) {
+    double C = get_price(type, sd, i);
+    double lowest_low = lowest_price(time_period, sd, i, 'l');
+    double highest_high = highest_price(time_period, sd, i, 'h');
+    double will_r = (highest_high - C) / (highest_high - lowest_low) * -100;
+    output[k++] = will_r;
+  } 
 
   return k;
 }
