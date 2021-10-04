@@ -4,6 +4,7 @@ import time
 from PIL import ImageDraw
 from PIL import ImageFont
 from PIL import Image
+import pylib.colors as terminal_colors
 
 def add_horizontal_line(val, indicators, pnum, apds, color='#FF00FF'):
   line = [val for x in range(len(indicators[0][list(indicators[0].keys())[0]]))]
@@ -18,13 +19,45 @@ def get_stock_data(indicators, j):
     ind_data.append([price]) 
   return ind_data
 
-def draw_graph(dataset, chart_type, indicators, time_intervals):
+def get_price_type(tp):
+  if tp == 'c':
+    return 'close'
+  elif tp == 'o':
+    return 'open'
+  elif tp == 'h':
+    return 'high'
+  return 'low'
+
+def get_ind_type(indicators):
+  ind_str = list(indicators[0].keys())[0]
+  if ind_str in ['SMA', 'EMA', 'WMA', 'DEMA', 'TEMA', 'KAMA']:
+    return 'MA'
+  return 'LVL'
+
+def get_entry_index(trade_signals):
+  for i in range(len(trade_signals)):
+    if trade_signals[i]['type'] == 'buy':
+      return i 
+
+def get_exit_index(trade_signals):
+  for i in range(len(trade_signals) - 1, 0, -1):
+    if trade_signals[i]['type'] == 'sell':
+      return i 
+
+def format_change(change):
+  if change > 0:
+    return terminal_colors.GREEN + '+' + str(change) + '%' + terminal_colors.ENDC
+  return terminal_colors.RED + str(change) + '%' + terminal_colors.ENDC
+
+def draw_graph(dataset, chart_type, indicators, time_intervals, is_backtest, money, tp):
   """
     Create a candlestick chart with optional indicators
     Arguments are passed in from C
   """
-  print(indicators)
+  # invariant: when backtesting we can assume that exactly one indicator is passed in
   # save data as a pandas data frame
+  price_type = get_price_type(tp)
+  ind_type = get_ind_type(indicators)
   stock_data = []
   largest_price = 0
   largest_price_date = ""
@@ -34,6 +67,8 @@ def draw_graph(dataset, chart_type, indicators, time_intervals):
   last_date = dataset[len(dataset) - 1]['date'].split('T')[0]
   title = "\n\n" + dataset[0]['symbol'] + " (" + first_date + ", " + last_date + ")"
   symbol_name = dataset[0]['symbol']
+  i = 0
+  trade_signals = []
   for entry in dataset:
     date = entry['date'].split('T')[0]
     volume = entry['volume']
@@ -42,7 +77,19 @@ def draw_graph(dataset, chart_type, indicators, time_intervals):
     low = entry['low']
     close = entry['close']
     stock_data.append([date, volume, openp, high, low, close])
-
+    
+    # generate sell and buy signals when backtesting
+    if is_backtest:
+      cp = entry[price_type]
+      indb = indicators[0][list(indicators[0].keys())[0]]
+      if i >= 3:
+        if (cp > indb[i] and dataset[i - 1][price_type] > indb[i - 1] and dataset[i - 2][price_type] < indb[i - 2]
+          and dataset[i - 3][price_type] < indb[i - 3]):
+          trade_signals.append({'date': date, 'price': close, 'type': 'buy'})
+        elif (cp < indb[i] and dataset[i - 1][price_type] < indb[i - 1] and dataset[i - 2][price_type] > indb[i - 2]
+          and dataset[i - 3][price_type] > indb[i - 3]): 
+          trade_signals.append({'date': date, 'price': close, 'type': 'sell'})
+        
     if high > largest_price:
       largest_price = high
       largest_price_date = date
@@ -50,6 +97,8 @@ def draw_graph(dataset, chart_type, indicators, time_intervals):
     if low < lowest_price:
       lowest_price = low
       lowest_price_date = date
+
+    i += 1
     
   df = pd.DataFrame(stock_data, columns=['Date', 'Volume', 'Open', 'High', 'Low', 'Close'])
   df['Date'] = pd.to_datetime(df['Date'], format='%Y-%m-%d')
@@ -166,7 +215,6 @@ def draw_graph(dataset, chart_type, indicators, time_intervals):
 
   fname = symbol_name + '_' + str(int(time.time())) + '.png'
   s = mpf.make_mpf_style(base_mpf_style='mike', rc={'font.size': 18})
-  print(apds, len(apds))
 
   mpf.plot(df, addplot=apds, show_nontrading=True, style=s, type=chart_type, volume=True, ylabel_lower='Volume',
     title=title, figscale=2, returnfig=True, block=False, savefig='graphs/' + fname, volume_panel=1)
@@ -186,3 +234,45 @@ def draw_graph(dataset, chart_type, indicators, time_intervals):
   draw.text((700, 110), 'Absolute low: ' + str(lowest_price) + "(" + lowest_price_date + ")", (255, 255, 255), font=font)
 
   img.save('graphs/' + fname)
+
+  # if backtesting, display all the buy and sell signals
+  if is_backtest:
+    initial_money = money
+    print(terminal_colors.UNDERLINE + 'Initial money:' + terminal_colors.ENDC, '$' + str(money))
+    print()
+
+    # calculate entry and exit point indexes
+    entry_index = get_entry_index(trade_signals)
+    exit_index = get_exit_index(trade_signals)
+
+    num_of_stocks = 0
+    is_entry = 1
+    buy_sell_toggle = 1
+    for i in range(len(trade_signals)):
+      if trade_signals[i]['type'] == 'buy':
+        entry_str = ''
+        change = '+0.00%'
+        if i == entry_index:
+          entry_str = ' <-- ' + terminal_colors.UNDERLINE + 'Entry point' + terminal_colors.ENDC
+          is_entry = 0
+        if buy_sell_toggle:
+          num_of_stocks = money / trade_signals[i]['price']
+          buy_sell_toggle = 0
+        print(terminal_colors.GREEN + 'Buy signal:' + terminal_colors.ENDC + entry_str)
+      else:
+        if not is_entry and not buy_sell_toggle:
+          prev_money = money
+          money = trade_signals[i]['price'] * num_of_stocks
+          change = format_change(round((money / prev_money - 1) * 100, 2))
+          buy_sell_toggle = 1
+        exit_str = ''
+        if i == exit_index:
+          exit_str = ' <-- ' + terminal_colors.UNDERLINE + 'Exit point' + terminal_colors.ENDC
+        print(terminal_colors.RED + 'Sell signal:' + terminal_colors.ENDC + exit_str)
+      print('\t- Date:', trade_signals[i]['date'])
+      print('\t- Price:', '$' + str(trade_signals[i]['price']))
+      if not is_entry:
+        print('\t- Current money:', '$' + str(round(money, 2)), '(' + change + ')')
+    
+
+    print('Total gain:', '$' + str(round(money, 2)), '(' + format_change(round((money / initial_money - 1) * 100, 2)) + ')')

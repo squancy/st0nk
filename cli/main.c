@@ -2,6 +2,7 @@
 #include <Python.h>
 
 #include <stdio.h>
+#include <time.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
@@ -16,9 +17,13 @@
 #include "headers/pyc.h"
 #include "headers/helpers.h"
 
+#define SIZE 10000
+
 static void fetch_data_no_param(char* url_param, char* main_text, char* format_string, char type);
 static void print_json_data(char* final_url, char* text, char* props[], char* format_strings[], int size, int max, char ps[]);
 static void print_symbols_in_exchange(char* exchange, char* url_param, char* format_string);
+static void graph_stock(int is_backtest, long money, int argc, char** argv, int ipos, char* from, char* to, char* symbol, char* chart_type);
+const char* comma = ",";
 
 int main(int argc, char* argv[]) {
   if (argc == 1 || ((flag_exists(argc, argv, "-h") || flag_exists(argc, argv, "--help")) && argc == 2)) {
@@ -207,6 +212,52 @@ int main(int argc, char* argv[]) {
 
     char* exchange = argv[pos + 1];
     print_symbols_in_exchange(exchange, "crypto", "Crypto symbols in exchange %s");
+  } else if (flag_exists(argc, argv, "--backtest")) {
+    // Graph a given stock + calculate the performance of the given trading strategy
+    int bpos = return_pos(argc, argv, "--backtest");
+    int ipos = return_pos(argc, argv, "--indicator");
+    int mpos = return_pos(argc, argv, "--money");
+    if (bpos == argc - 1 || ipos == argc - 1 || mpos == argc - 1) {
+      exit_wrong_arg("--backtest");
+    }
+
+    char* symbol = argv[bpos + 1];
+
+    // Make sure symbol is supported
+    if (!graph_symbol_supported(symbol)) {
+      printf("Symbol given is not supported\n");
+      exit(EXIT_FAILURE);
+    }
+
+    // If given, make sure that the indicators are valid
+    if (!is_ind_valid(argc, argv, ipos)) {
+      printf("Invalid indicator given\n");
+      exit(EXIT_FAILURE);
+    }
+    
+    // Make sure initial money given is a valid number
+    char* end;
+    char buf[SIZE];
+    strncpy(buf, argv[mpos + 1], strlen(argv[mpos + 1]));
+    long money = strtol(buf, &end, 10);
+    if (buf == end) {
+      printf("Invalid initial money given\n");
+      exit(EXIT_FAILURE);
+    }
+    
+    char from[100];
+    char to[100];
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    int year = tm.tm_year + 1900;
+    int month = tm.tm_mon + 1;
+    int day = tm.tm_mday;
+    int from_month = (month <= 10) ? month + 2 : (month + 2) % 13 + 1;
+    sprintf(from, "%d-%02d-%02d", year - 1, from_month, day);
+    sprintf(to, "%d-%02d-%02d", year, month, day);
+   
+    // tp must be a null terminated string since it's later converted into a Python object
+    graph_stock(1, money, argc, argv, ipos, from, to, symbol, "candle");
   } else if (flag_exists(argc, argv, "--graph")) {
     // Graph a given stock + optional indicators and save image
     int gpos = return_pos(argc, argv, "--graph");
@@ -251,172 +302,187 @@ int main(int argc, char* argv[]) {
       exit(EXIT_FAILURE);
     }
 
-    char* inds[100];
-    int ind_len = get_indicators(inds, argv, ipos, argc);
-    const char* comma = ",";
-    int time_intervals[256][3];
-    char types[256];
-    int time_interval_len = 0;
-    int types_len = 0;
-    int max_time_interval = 0;
-    int tis[256];
-    int tis_cnt = 0;
-    for (int i = 0; i < ind_len; i++) {
-      char* ind_name = extract_indname(inds[i]); 
-      char param_buf[32];
-      strncpy(param_buf, inds[i] + strlen(ind_name) + 1, strlen(inds[i]) - strlen(ind_name) - 1);
-      char* token;
-      token = strtok(param_buf, comma);
-      int j = 1;
-      char type;
-      while (token != NULL) {
-        int t = atoi(token);
-        if (t > 0) {
-          time_intervals[time_interval_len][j++] = t;
-          tis[tis_cnt++] = t;
-          if (t > max_time_interval) {
-            max_time_interval = t;
-          }
-          if (strcmp(ind_name, "STOCH") == 0) {
-            tis[tis_cnt++] = t;
-          }
-        } else if (*token == 'o' || *token == 'c' || *token == 'h' || *token == 'l') {
-          types[types_len++] = *token;
-        }
-        token = strtok(NULL, comma);
-      }
-      time_intervals[time_interval_len][0] = j;
-      time_interval_len++;
-    }
+    int len = strlen(argv[ipos + 1]);
+    char tp = argv[ipos + 1][len - 1];
 
-    // Look back for more days in order to get enough data to plot the indicators with the price
-    int lookback_days = max_time_interval * 5;
-    int y, m, d;
-    get_ymd(from, &y, &m, &d);
-
-    char lookback_from[64];
-    today_minus_n_days(lookback_from, y, m, d, sizeof(lookback_from), lookback_days);
-    
-    char url[256];
-    snprintf(url, sizeof(url), "&symbols=%s&sort=ASC&date_from=%s&date_to=%s&limit=1000", symbol, lookback_from, to);
-    char* final_url = hist_url("eod", url);
-    char* response = get_json(final_url, 0);
-    cJSON* json = cJSON_Parse(response);
-    json = cJSON_GetObjectItemCaseSensitive(json, "data");
-    cJSON* obj;
-    int has_content = 0;
-
-    // Build list of dictionaries that will be passed to Python
-    // If indicators are also passed in build a StockData struct
-    int k = 0;
-    int pl = 0;
-    StockData* sd[10000];
-    setenv("PYTHONPATH", ".", 1);
-    Py_Initialize();
-    PyObject* py_tuple = PyTuple_New(4);
-    PyObject* py_list = PyList_New(0);
-    PyObject* py_indlist = PyList_New(0);
-    PyObject* py_tis = PyList_New(0);
-    PyErr_Print();
-    PyObject* py_value;
-    cJSON_ArrayForEach(obj, json) {
-      double open = cJSON_GetObjectItemCaseSensitive(obj, "open")->valuedouble;
-      double high = cJSON_GetObjectItemCaseSensitive(obj, "high")->valuedouble;
-      double low = cJSON_GetObjectItemCaseSensitive(obj, "low")->valuedouble;
-      double close = cJSON_GetObjectItemCaseSensitive(obj, "close")->valuedouble;
-      double volume = cJSON_GetObjectItemCaseSensitive(obj, "volume")->valuedouble;
-      char* symbol = cJSON_GetObjectItemCaseSensitive(obj, "symbol")->valuestring;
-      char* exchange = cJSON_GetObjectItemCaseSensitive(obj, "exchange")->valuestring;
-      char* date = cJSON_GetObjectItemCaseSensitive(obj, "date")->valuestring;
-      py_value = Py_BuildValue("{s:d, s:d, s:d, s:d, s:d, s:s, s:s, s:s}",
-                                "open", open, "high", high, "low", low, "close", close, "volume", volume,
-                                "symbol", symbol, "exchange", exchange, "date", date);
-
-      // Price data is only displayed when it reaches the actual 'from' parameter given by the user
-      // The extra lookback is only needed for indicators
-      char date_formed[16];
-      strncpy(date_formed, date, 10 * sizeof(char));
-      if (date_diff(date_formed, from)) {
-        int status = PyList_Append(py_list, py_value); 
-        if (status == -1) {
-          printf("An error occurred during the process.\n");
-          exit(EXIT_FAILURE);
-        }
-        pl++;
-      }
-      
-      StockData* el = malloc(sizeof(StockData));
-      el->open = open;
-      el->high = high;
-      el->low = low;
-      el->close = close;
-      el->volume = volume;
-      el->symbol = symbol;
-      el->exchange = exchange;
-      el->date = date;
-      sd[k++] = el;
-      has_content = 1;
-    }
-
-    if (!has_content) {
-      printf("No data is available with the given parameters.\n");
-      Py_FinalizeEx();
-      exit(EXIT_FAILURE);
-    }
-
-    int l = 0;
-    for (int i = 0; i < ind_len; i++) {
-      char* ind_name = extract_indname(inds[i]); 
-      double output[k];
-      double output2[k];
-      int ta[3] = {time_intervals[i][1], time_intervals[i][2], time_intervals[i][3]};
-      int dataset_len = perform_indicator(ta, sd, k, output, output2, ind_name, types[i]);
-
-      // Convert the dataset into a Python array
-      PyObject* l_ind = PyList_New(0);
-      PyObject* l_ind2 = PyList_New(0);
-
-      for (int j = dataset_len - pl; j < dataset_len; j++) {
-        PyObject* d_value = Py_BuildValue("d", output[j]);
-        PyList_Append(l_ind, d_value);
-      }
-
-      if (strcmp(ind_name, "MACD") == 0 || strcmp(ind_name, "STOCH") == 0) {
-        for (int j = dataset_len - pl; j < dataset_len; j++) {
-          PyObject* d_value = Py_BuildValue("d", output2[j]);
-          PyList_Append(l_ind2, d_value);
-        }
-      }
-
-      PyObject* final_value = Py_BuildValue("{s:O}", ind_name, l_ind);
-      PyList_Append(py_indlist, final_value);
-      if (strcmp(ind_name, "MACD") == 0 || strcmp(ind_name, "STOCH") == 0) {
-        PyObject* val = Py_BuildValue("{s:O}", ind_name, l_ind2);
-        PyList_Append(py_indlist, val);
-      }
-    }
-
-    for (int i = 0; i < tis_cnt; i++) {
-      PyObject* val = Py_BuildValue("i", tis[i]);
-      PyList_Append(py_tis, val);
-    }
-
-    PyTuple_SetItem(py_tuple, 0, py_list);
-    PyTuple_SetItem(py_tuple, 1, Py_BuildValue("s", chart_type));
-    PyTuple_SetItem(py_tuple, 2, py_indlist);
-    PyTuple_SetItem(py_tuple, 3, py_tis);
-
-    Py_FinalizeEx();
-
-    call_python_func(py_tuple, "graph", "draw_graph");    
-    free_sd(sd, k);
-    cJSON_Delete(json);
-    cJSON_Delete(obj);
+    graph_stock(0, 0, argc, argv, ipos, from, to, symbol, chart_type);
   } else {
     printf("Invalid usage: please consult the docs by running ");
     printf(UNST "sa -h\n" UNEN);
     exit(EXIT_FAILURE);
   }
+}
+
+// Create a graph about the stock, also illustrate indicators
+static void graph_stock(int is_backtest, long money, int argc, char** argv, int ipos, char* from, char* to, char* symbol, char* chart_type) {
+  int len = strlen(argv[ipos + 1]);
+  char tpc = argv[ipos + 1][len - 1];
+  char tp[2] = {tpc, '\0'};
+
+  char* inds[100];
+  int ind_len = get_indicators(inds, argv, ipos, argc);
+  int time_intervals[256][3];
+  char types[256];
+  int time_interval_len = 0;
+  int types_len = 0;
+  int max_time_interval = 0;
+  int tis[256];
+  int tis_cnt = 0;
+  for (int i = 0; i < ind_len; i++) {
+    char* ind_name = extract_indname(inds[i]); 
+    char param_buf[32];
+    strncpy(param_buf, inds[i] + strlen(ind_name) + 1, strlen(inds[i]) - strlen(ind_name) - 1);
+    char* token;
+    token = strtok(param_buf, comma);
+    int j = 1;
+    char type;
+    while (token != NULL) {
+      int t = atoi(token);
+      if (t > 0) {
+        time_intervals[time_interval_len][j++] = t;
+        tis[tis_cnt++] = t;
+        if (t > max_time_interval) {
+          max_time_interval = t;
+        }
+        if (strcmp(ind_name, "STOCH") == 0) {
+          tis[tis_cnt++] = t;
+        }
+      } else if (*token == 'o' || *token == 'c' || *token == 'h' || *token == 'l') {
+        types[types_len++] = *token;
+      }
+      token = strtok(NULL, comma);
+    }
+    time_intervals[time_interval_len][0] = j;
+    time_interval_len++;
+  }
+
+  // Look back for more days in order to get enough data to plot the indicators with the price
+  int lookback_days = max_time_interval * 5;
+  int y, m, d;
+  get_ymd(from, &y, &m, &d);
+
+  char lookback_from[64];
+  today_minus_n_days(lookback_from, y, m, d, sizeof(lookback_from), lookback_days);
+  
+  char url[256];
+  snprintf(url, sizeof(url), "&symbols=%s&sort=ASC&date_from=%s&date_to=%s&limit=1000", symbol, lookback_from, to);
+  char* final_url = hist_url("eod", url);
+  char* response = get_json(final_url, 0);
+  cJSON* json = cJSON_Parse(response);
+  json = cJSON_GetObjectItemCaseSensitive(json, "data");
+  cJSON* obj;
+  int has_content = 0;
+
+  // Build list of dictionaries that will be passed to Python
+  // If indicators are also passed in build a StockData struct
+  int k = 0;
+  int pl = 0;
+  StockData* sd[SIZE];
+  setenv("PYTHONPATH", ".", 1);
+  Py_Initialize();
+  PyObject* py_tuple = PyTuple_New(7);
+  PyObject* py_list = PyList_New(0);
+  PyObject* py_indlist = PyList_New(0);
+  PyObject* py_tis = PyList_New(0);
+  PyErr_Print();
+  PyObject* py_value;
+  cJSON_ArrayForEach(obj, json) {
+    double open = cJSON_GetObjectItemCaseSensitive(obj, "open")->valuedouble;
+    double high = cJSON_GetObjectItemCaseSensitive(obj, "high")->valuedouble;
+    double low = cJSON_GetObjectItemCaseSensitive(obj, "low")->valuedouble;
+    double close = cJSON_GetObjectItemCaseSensitive(obj, "close")->valuedouble;
+    double volume = cJSON_GetObjectItemCaseSensitive(obj, "volume")->valuedouble;
+    char* symbol = cJSON_GetObjectItemCaseSensitive(obj, "symbol")->valuestring;
+    char* exchange = cJSON_GetObjectItemCaseSensitive(obj, "exchange")->valuestring;
+    char* date = cJSON_GetObjectItemCaseSensitive(obj, "date")->valuestring;
+    py_value = Py_BuildValue("{s:d, s:d, s:d, s:d, s:d, s:s, s:s, s:s}",
+                              "open", open, "high", high, "low", low, "close", close, "volume", volume,
+                              "symbol", symbol, "exchange", exchange, "date", date);
+
+    // Price data is only displayed when it reaches the actual 'from' parameter given by the user
+    // The extra lookback is only needed for indicators
+    char date_formed[16];
+    strncpy(date_formed, date, 10 * sizeof(char));
+    if (date_diff(date_formed, from)) {
+      int status = PyList_Append(py_list, py_value); 
+      if (status == -1) {
+        printf("An error occurred during the process.\n");
+        exit(EXIT_FAILURE);
+      }
+      pl++;
+    }
+    
+    StockData* el = malloc(sizeof(StockData));
+    el->open = open;
+    el->high = high;
+    el->low = low;
+    el->close = close;
+    el->volume = volume;
+    el->symbol = symbol;
+    el->exchange = exchange;
+    el->date = date;
+    sd[k++] = el;
+    has_content = 1;
+  }
+
+  if (!has_content) {
+    printf("No data is available with the given parameters.\n");
+    Py_FinalizeEx();
+    exit(EXIT_FAILURE);
+  }
+
+  int l = 0;
+  for (int i = 0; i < ind_len; i++) {
+    char* ind_name = extract_indname(inds[i]); 
+    double output[k];
+    double output2[k];
+    int ta[3] = {time_intervals[i][1], time_intervals[i][2], time_intervals[i][3]};
+    int dataset_len = perform_indicator(ta, sd, k, output, output2, ind_name, types[i]);
+
+    // Convert the dataset into a Python array
+    PyObject* l_ind = PyList_New(0);
+    PyObject* l_ind2 = PyList_New(0);
+
+    for (int j = dataset_len - pl; j < dataset_len; j++) {
+      PyObject* d_value = Py_BuildValue("d", output[j]);
+      PyList_Append(l_ind, d_value);
+    }
+
+    if (strcmp(ind_name, "MACD") == 0 || strcmp(ind_name, "STOCH") == 0) {
+      for (int j = dataset_len - pl; j < dataset_len; j++) {
+        PyObject* d_value = Py_BuildValue("d", output2[j]);
+        PyList_Append(l_ind2, d_value);
+      }
+    }
+
+    PyObject* final_value = Py_BuildValue("{s:O}", ind_name, l_ind);
+    PyList_Append(py_indlist, final_value);
+    if (strcmp(ind_name, "MACD") == 0 || strcmp(ind_name, "STOCH") == 0) {
+      PyObject* val = Py_BuildValue("{s:O}", ind_name, l_ind2);
+      PyList_Append(py_indlist, val);
+    }
+  }
+
+  for (int i = 0; i < tis_cnt; i++) {
+    PyObject* val = Py_BuildValue("i", tis[i]);
+    PyList_Append(py_tis, val);
+  }
+  
+  // Pass in arguments as a Python tuple
+  PyTuple_SetItem(py_tuple, 0, py_list);
+  PyTuple_SetItem(py_tuple, 1, Py_BuildValue("s", chart_type));
+  PyTuple_SetItem(py_tuple, 2, py_indlist);
+  PyTuple_SetItem(py_tuple, 3, py_tis);
+  PyTuple_SetItem(py_tuple, 4, Py_BuildValue("i", is_backtest));
+  PyTuple_SetItem(py_tuple, 5, Py_BuildValue("i", money));
+  PyTuple_SetItem(py_tuple, 6, Py_BuildValue("s", tp));
+
+  Py_FinalizeEx();
+
+  call_python_func(py_tuple, "graph", "draw_graph");
+  free_sd(sd, k);
+  cJSON_Delete(json);
+  cJSON_Delete(obj);
 }
 
 // Fetches stock data from server and prints it to stdout

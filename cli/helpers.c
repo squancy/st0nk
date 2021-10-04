@@ -148,7 +148,24 @@ void print_usage(void) {
   printf(UNST "\t[indicators]" UNEN);
   printf(": must be some of the supported indicators \n\tand the parameters to them are given as comma separated values\n");
   printf("\te.g.: MACD,12,26,c means graph MACD with 12 and 26 days as parameters (values are always interpreted as days)\n");
-  printf("\tthe last parameter is always one of: c, h, l, o (close, high, low, open)\n");
+  printf("\tthe last parameter is always one of: c, h, l, o (close, high, low, open)\n\n");
+  printf(UNST "\t--backtest [symbol] --indicator [indicator] --money [initial money]" UNEN);
+  printf(": backtest a given trading strategy\n");
+  printf(UNST "\t[symbol]" UNEN);
+  printf(": must be a valid symbol of a stock listed in an exchange\n");
+  printf(UNST "\t[indicator]" UNEN);
+  printf(": must be a single valid indicator. The backtests are performed over a 1 year lookback period by the following rules:\n");
+  printf("\t\tMoving averages: a buy signal is indicated when the MA crosses the price from below.\n\t\tA sell signal is generated when ");
+  printf("the MA crosses the price from above\n");
+  printf("\t\tMACD: a buy signal is generated when the MACD line rises above the signal line.\n\t\tA sell signal is generated when the ");
+  printf("MACD line falls below the signal line\n");
+  printf("\t\tStochastic oscillator, RSI, Williams %%R: a buy signal is generated when the line raises above the lower threshold value\n\t\t");
+  printf("A sell signal is generated when the line falls below the upper threshold value\n");
+  printf(UNST "\t[initial money]" UNEN);
+  printf(": the amount of initial money (in dollars) that the backtesting algorithm gets in the beginning\n");
+  printf("\tNote that at sell and buy signals all the available money will be spent buying the stock\n");
+  printf("\tA graph is generated for each backtest where the buy and sell signals are specially indicated\n");
+
 }
 
 void exit_wrong_arg(char* arg) {
