@@ -344,9 +344,11 @@ static void graph_stock(int is_backtest, long money, int argc, char** argv, int 
         if (t > max_time_interval) {
           max_time_interval = t;
         }
+        /*
         if (strcmp(ind_name, "STOCH") == 0) {
           tis[tis_cnt++] = t;
         }
+        */
       } else if (*token == 'o' || *token == 'c' || *token == 'h' || *token == 'l') {
         types[types_len++] = *token;
       }
