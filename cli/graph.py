@@ -271,8 +271,9 @@ def draw_graph(dataset, chart_type, indicators, time_intervals, is_backtest, mon
       c_ind += 1
       j += 1
       pnum = pnum_before
-
-  fname = symbol_name + '_' + str(int(time.time())) + '.png'
+  
+  postfix = '_backtest' if is_backtest else ''
+  fname = symbol_name + '_' + str(int(time.time())) + postfix + '.png'
   s = mpf.make_mpf_style(base_mpf_style='mike', rc={'font.size': 18})
 
   mpf.plot(df, addplot=apds, show_nontrading=True, style=s, type=chart_type, volume=True, ylabel_lower='Volume',
