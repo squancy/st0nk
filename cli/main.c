@@ -16,6 +16,7 @@
 #include "headers/type.h"
 #include "headers/pyc.h"
 #include "headers/helpers.h"
+#include "headers/candlestick.h"
 
 #define SIZE 10000
 
@@ -212,7 +213,32 @@ int main(int argc, char* argv[]) {
 
     char* exchange = argv[pos + 1];
     print_symbols_in_exchange(exchange, "crypto", "Crypto symbols in exchange %s");
-  } else if (flag_exists(argc, argv, "--backtest")) {
+  } else if (flag_exists(argc, argv, "--candlestick") && argc == 7) {
+    int cpos = return_pos(argc, argv, "--candlestick");
+    int fpos = return_pos(argc, argv, "--from");
+    int tpos = return_pos(argc, argv, "--to");
+    if (cpos == argc - 1 || fpos == argc - 1 || tpos == argc - 1) {
+      exit_wrong_arg("--candlestick");
+    }
+
+    char* symbol = argv[cpos + 1];
+
+    // Make sure symbol is supported
+    if (!graph_symbol_supported(symbol)) {
+      printf("Symbol given is not supported\n");
+      exit(EXIT_FAILURE);
+    }
+
+    // Make sure 'from' and 'to' are valid dates
+    char* from = argv[fpos + 1];
+    char* to = argv[tpos + 1];
+    if (!is_date_valid(from) || !is_date_valid(to) || date_diff(from, to)) {
+      printf("Invalid date given\n");
+      exit(EXIT_FAILURE);
+    }
+
+    candlestick_recognition(from, to, symbol);
+  } else if (flag_exists(argc, argv, "--backtest") && argc == 7) {
     // Graph a given stock + calculate the performance of the given trading strategy
     int bpos = return_pos(argc, argv, "--backtest");
     int ipos = return_pos(argc, argv, "--indicator");
@@ -305,6 +331,7 @@ int main(int argc, char* argv[]) {
     int len = strlen(argv[ipos + 1]);
     char tp = argv[ipos + 1][len - 1];
 
+
     graph_stock(0, 0, argc, argv, ipos, from, to, symbol, chart_type);
   } else {
     printf("Invalid usage: please consult the docs by running ");
@@ -320,7 +347,7 @@ static void graph_stock(int is_backtest, long money, int argc, char** argv, int 
   char tp[2] = {tpc, '\0'};
 
   char* inds[100];
-  int ind_len = get_indicators(inds, argv, ipos, argc);
+  int ind_len = ipos == -1 ? 0 : get_indicators(inds, argv, ipos, argc);
   int time_intervals[256][3];
   char types[256];
   int time_interval_len = 0;

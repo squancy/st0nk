@@ -164,8 +164,14 @@ void print_usage(void) {
   printf(UNST "\t[initial money]" UNEN);
   printf(": the amount of initial money (in dollars) that the backtesting algorithm gets in the beginning\n");
   printf("\tNote that at sell and buy signals all the available money will be spent buying the stock\n");
-  printf("\tA graph is generated for each backtest where the buy and sell signals are specially indicated\n");
-
+  printf("\tA graph is generated for each backtest where the buy and sell signals are specially indicated\n\n");
+  printf(UNST "\t--candlestick [symbol] --from [date] --to [date]" UNEN);
+  printf(": perform a candlestick pattern recognition on a given stock\n");
+  printf(UNST "\t[symbol]" UNEN);
+  printf(": must be a valid symbol of a stock listed in an exchange\n");
+  printf(UNST "\t[date]" UNEN);
+  printf(": must be a valid date up to present in format YYYY-MM-DD\n");
+  printf("\tNote that the difference between the 'from' and 'to' dates must be at least 5 days\n");
 }
 
 void exit_wrong_arg(char* arg) {

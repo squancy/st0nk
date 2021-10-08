@@ -36,6 +36,8 @@ def get_price_type(tp):
   return 'low'
 
 def get_ind_type(indicators):
+  if len(indicators) == 0:
+    return ""
   ind_str = list(indicators[0].keys())[0]
   if ind_str in ['SMA', 'EMA', 'WMA', 'DEMA', 'TEMA', 'KAMA']:
     return 'MA'
@@ -72,7 +74,6 @@ def draw_graph(dataset, chart_type, indicators, time_intervals, is_backtest, mon
   """
   # invariant: when backtesting we can assume that exactly one indicator is passed in
   # save data as a pandas data frame
-  print(time_intervals)
   price_type = get_price_type(tp)
   ind_type = get_ind_type(indicators)
   stock_data = []
@@ -275,7 +276,7 @@ def draw_graph(dataset, chart_type, indicators, time_intervals, is_backtest, mon
   postfix = '_backtest' if is_backtest else ''
   fname = symbol_name + '_' + str(int(time.time())) + postfix + '.png'
   s = mpf.make_mpf_style(base_mpf_style='mike', rc={'font.size': 18})
-
+  
   mpf.plot(df, addplot=apds, show_nontrading=True, style=s, type=chart_type, volume=True, ylabel_lower='Volume',
     title=title, figscale=2, returnfig=True, block=False, savefig='graphs/' + fname, volume_panel=1)
   
