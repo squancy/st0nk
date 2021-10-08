@@ -1,6 +1,8 @@
 #ifndef API_H
 #define API_H
 
+// The API access keys point to a free account
+// Feel free to use these keys or you can also generate your own ones
 #define API_URL "https://www.finnhub.io/api/v1/"
 #define API_KEY "c2l6svaad3if2cn5gigg"
 #define TOKEN_URL "&token="
