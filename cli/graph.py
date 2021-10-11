@@ -13,6 +13,8 @@ COLORS = [
   (250,235,215), (210,105,30), (245,245,245), (230,230,250), (255,239,213), (255,215,0)
 ]
 
+MAS = ['SMA', 'EMA', 'WMA', 'DEMA', 'TEMA', 'KAMA']
+
 def add_horizontal_line(val, indicators, pnum, apds, color='#FF00FF'):
   line = [val for x in range(len(indicators[0][list(indicators[0].keys())[0]]))]
   df = pd.DataFrame(line, columns=['Price'])
@@ -39,7 +41,7 @@ def get_ind_type(indicators):
   if len(indicators) == 0:
     return ""
   ind_str = list(indicators[0].keys())[0]
-  if ind_str in ['SMA', 'EMA', 'WMA', 'DEMA', 'TEMA', 'KAMA']:
+  if ind_str in MAS:
     return 'MA'
   elif ind_str == 'MACD':
     return 'MACD'
@@ -74,6 +76,7 @@ def draw_graph(dataset, chart_type, indicators, time_intervals, is_backtest, mon
   """
   # invariant: when backtesting we can assume that exactly one indicator is passed in
   # save data as a pandas data frame
+  i = 0
   price_type = get_price_type(tp)
   ind_type = get_ind_type(indicators)
   stock_data = []
@@ -85,7 +88,6 @@ def draw_graph(dataset, chart_type, indicators, time_intervals, is_backtest, mon
   last_date = dataset[len(dataset) - 1]['date'].split('T')[0]
   title = "\n\n" + dataset[0]['symbol'] + " (" + first_date + ", " + last_date + ")"
   symbol_name = dataset[0]['symbol']
-  i = 0
   trade_signals = []
   ind_type = get_ind_type(indicators)
   signal_points = [np.nan, np.nan, np.nan]

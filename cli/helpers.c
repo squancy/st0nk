@@ -171,6 +171,9 @@ void print_usage(void) {
   printf(": must be a valid symbol of a stock listed in an exchange\n");
   printf(UNST "\t[date]" UNEN);
   printf(": must be a valid date up to present in format YYYY-MM-DD\n");
+  printf("\tCurrently available candlestick patterns:\n");
+  printf("\t\t- hammer, hanging man, inverse hammer, shooting star, bullish engulfing, bearish engulfing\n");
+  printf("\t\t- piercing line, morning star, evening star, three white soldiers, three black crows\n");
   printf("\tNote that the difference between the 'from' and 'to' dates must be at least 5 days\n");
 }
 

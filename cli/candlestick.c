@@ -31,7 +31,9 @@ static void get_last_five_units(StockData* sd[], int len, int start, StockData* 
 }
 
 static void print_signal(int x) {
-  if (x) {
+  if (x == 2) {
+    printf(GREEN "\tBuy signal" RESET "/" RED "Sell signal\n" RESET);
+  } else if (x == 1) {
     printf(GREEN "\tBuy signal\n" RESET);
   } else {
     printf(RED "\tSell signal\n" RESET);
@@ -100,34 +102,71 @@ void candlestick_recognition(char* from, char* to, char* symbol) {
       k++;
     }
 
-    // Hammer: the lower wick is greater than the body and the upper wick is at most 30% of the body
-    // Bullish pattern
+    /*
+      Some of the candlestick patterns can indicate both a bullish and bearish reversal depending on whether it appears at the end
+      of an uptrend or downtrend
+    */
+
+    // Hammer/Hanging man: the lower wick is greater than the body and the upper wick is at most 30% of the body
+    // Bullish/Bearish pattern
     if (bodies[0] < lower_wicks[0] && upper_wicks[0] < bodies[0] * 0.3) {
-      print_candle_info("Hammer", 1, arr[0]->date, arr[0]->date);
+      print_candle_info("Hammer/Hanging man", 2, arr[0]->date, arr[0]->date);
     }
 
-    // Inverse hammer: the upper wick is greater than the body and the lower wick is at most 30% of the body
-    // Bullish pattern
+    // Inverse hammer/Shooting star: the upper wick is greater than the body and the lower wick is at most 30% of the body
+    // Bullish/Bearish pattern
     if (bodies[0] < upper_wicks[0] && lower_wicks[0] < bodies[0] * 0.3) {
-      print_candle_info("Inverse hammer", 1, arr[0]->date, arr[0]->date);
+      print_candle_info("Inverse hammer/Shooting star", 2, arr[0]->date, arr[0]->date);
     }
 
-    // Bullish engulfing: first red candle is shorter, second green candle is larger, completely engulfs the first candle
+    // Bullish/Bearish engulfing: first red candle is shorter, second green candle is larger, completely engulfs the first candle
     // Bullish pattern
     if (bodies[0] > bodies[1] && arr[0]->high > arr[1]->high && arr[0]->low < arr[1]->low
       && arr[0]->open < arr[0]->close && arr[1]->open > arr[1]->close) {
-      print_candle_info("Bullish engulfing", 1, arr[1]->date, arr[0]->date);
+      print_candle_info("Bullish/Bearish engulfing", 2, arr[1]->date, arr[0]->date);
     }
 
-    // Piercing line: first candle is a long red, 2nd one is a long green, its close price mush be more than the middle of the 1st candle
+    // Piercing line: first candle is a long red, 2nd one is a long green, its close price must be more than the middle of the 1st candle
     // Bullish pattern
     if (lower_wicks[0] < bodies[0] * 0.33 && upper_wicks[0] < bodies[0] * 0.33 && lower_wicks[1] < bodies[1] * 0.33
-      && upper_wicks[1] < bodies[1] * 0.33 && arr[0]->close > (arr[1]->close + arr[1]->open) / 2 && arr[0]->close > arr[0]->open
+      && upper_wicks[1] < bodies[1] * 0.33 && arr[0]->close > ((arr[1]->close + arr[1]->open) / 2) && arr[0]->close > arr[0]->open
       && arr[1]->close < arr[1]->open) {
       print_candle_info("Piercing line", 1, arr[1]->date, arr[0]->date);
     }
 
-    // 
+    // Morning/Evening star: 1st candle is a long red, 2nd is a short one with a gap, 3rd one is a long green
+    // Bullish/Bearish pattern
+    if (arr[0]->close > arr[0]->open && bodies[1] < bodies[0] && arr[1]->open < arr[0]->open && arr[1]->close < arr[0]->open
+      && arr[2]->close < arr[2]->open && bodies[2] > bodies[1] && arr[1]->open < arr[2]->close && arr[1]->close < arr[2]->close) {
+      print_candle_info("Morning/Evening star", 2, arr[2]->date, arr[0]->date);
+    }
+
+    // Three white soldiers: three green candles with short wicks, all open and close progressively higher than the previous one
+    // Bullish pattern
+    int candles[3];
+    for (int i = 0; i < 3; i++) {
+      candles[i] = arr[i]->close > arr[i]->open && lower_wicks[i] < bodies[i] * 0.33 && upper_wicks[i] < bodies[i] * 0.33;
+      if (i < 2) {
+        candles[i] = candles[i] && arr[i]->open > arr[i + 1]->open && arr[i]->close > arr[i + 1]->close;
+      }
+    }
+
+    if (candles[0] && candles[1] && candles[2]) {
+      print_candle_info("Three white soldiers", 1, arr[2]->date, arr[0]->date);
+    }
+
+    // Three black crows: 3 red candles, each closes and opens progressively lower than the previous day
+    // Bearish pattern
+    for (int i = 0; i < 3; i++) {
+      candles[i] = arr[i]->close < arr[i]->open && lower_wicks[i] < bodies[i] * 0.33 && upper_wicks[i] < bodies[i] * 0.33;
+      if (i < 2) {
+        candles[i] = candles[i] && arr[i]->open < arr[i + 1]->open && arr[i]->close < arr[i + 1]->close;
+      }
+    }
+
+    if (candles[0] && candles[1] && candles[2]) {
+      print_candle_info("Three black crows", 0, arr[2]->date, arr[0]->date);
+    }
   }
 
   // Free memory
